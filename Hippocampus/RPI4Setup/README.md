@@ -6,7 +6,6 @@ What is installed:
 * Ubuntu 18.04
 * ROS Melodic
 * Mavros and ROS-USB-Camera
-* PX4 Software
 
 
 What is necessary:
@@ -101,8 +100,42 @@ Now `sudo reboot`
 
 As a test if everything works correctly start the USB Camera package and see if you can see a picture.
 First start `roscore` on the Master computer and then start the camera on the pi with:
-```bibtex
+```
 roslaunch usb_cam usb_cam-test.launch
 ```
 Dont worry about the error message in the first place.
 Second open on your main computer `rqt_image_view ` and see if the video is streaming correctly.
+
+
+# Installing additional packages
+The best way to install different packages of ROS is always using apt. 
+Sometimes it is not possible to do that. Additionally if we want to use our own packages an own workspace has to be compiled. 
+
+Installing dependencies for compiling:
+
+```
+sudo apt-get install python-catkin-tools -y
+sudo apt-get install -y python-rosdep python-rosinstall-generator python-wstool python-rosinstall build-essential -y
+```
+now create workspace:
+
+```
+cd ~
+mkdir catkin_ws
+cd catkin_ws
+sudo rosdep init -y
+rosdep update -y
+cd src/
+```
+Now we install to State estimation tool with Apriltags:
+```
+git clone https://github.com/HippoCampusRobotics/mu_auv_localization.git
+cd ..
+
+rosdep install --from-paths src --ignore-src --rosdistro melodic -y
+source ~/.bashrc
+catkin build
+```
+
+rosdep always looks which dependencies are necessary and installs them directly.
+Now additional packages can be installed. 
