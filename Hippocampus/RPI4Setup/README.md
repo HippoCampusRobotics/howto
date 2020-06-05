@@ -2,7 +2,7 @@
 
 Setup of Raspberry pi 4 for the Control of Hippocampus
 
-What is installed:
+What is installed in this guide:
 * Ubuntu 18.04
 * ROS Melodic
 * Mavros and ROS-USB-Camera
@@ -75,7 +75,7 @@ For me the following two lines are added:
 192.168.0.27 pi
 ```
 First the main computer and second the pi itself(change names accordingly)
-Next is the ROS_HOSTNAME and ROS_MASTER_URI again open with `sudo nano .bashrc` and put in the last lines:
+Next is the ROS_HOSTNAME and ROS_MASTER_URI again open with `sudo nano ~/.bashrc` and put in the last lines:
 ```
 export ROS_HOSTNAME="pi"
 export ROS_MASTER_URI="http://tim-linux:11311"
@@ -136,6 +136,11 @@ rosdep install --from-paths src --ignore-src --rosdistro melodic -y
 source ~/.bashrc
 catkin build
 ```
-
 rosdep always looks which dependencies are necessary and installs them directly.
 Now additional packages can be installed. 
+In the end the setup of the custom workspace has to be saved in the .bashrc script directly under the setup of the basic ROS.
+```
+sudo nano ~/.bashrc
+source ~/catkin_ws/devel/setup.bash
+```
+
