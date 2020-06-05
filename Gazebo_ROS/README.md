@@ -28,7 +28,7 @@ roslaunch px4 posix_sitl.launch
 Now IRIS should be visible and with `rostopic list` a list of different Topics.
 
 For the state estimation with the April-tags first the world has to be changed and the vehicle correct vehicle has to be spawned.
-In `launch/posix_sitl.launch` the following lines have to be replaced:
+In `hippocampus_firmware/launch/posix_sitl.launch` the following lines have to be replaced:
 ```
 <arg name="vehicle" default="iris"/>
 <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
@@ -41,7 +41,7 @@ With:
 <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
 ```
 
-In `Tools/sitl_gazebo/worlds/uuv_hippocampus.world` the lines:
+In `hippocampus_firmware/Tools/sitl_gazebo/worlds/uuv_hippocampus.world` the lines:
 ```
 <include>
     <uri>model://uuv_apriltag_tank</uri>
@@ -82,6 +82,7 @@ The Estimation starts also:
 With the script `driving_infinity.py`, on this side the uuv can drive an infinity.
 
 With Qgroundcontrol(QGC) the UUV_INPUT_MODE has to be changed on 3 and EKF2_AID_MASK to 24.
+This can be done in the Parameters tab of QGC.
 Offboard mode and arming is required.
 Force Arming can be done with the following command:
 ```
