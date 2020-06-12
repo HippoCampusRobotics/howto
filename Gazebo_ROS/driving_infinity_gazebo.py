@@ -15,7 +15,7 @@ from mavros_msgs.msg import PositionTarget, AttitudeTarget
 
 # publisher_waypoint = rospy.Publisher('/mavros/setpoint_position/local', PoseStamped, queue_size=10)
 # publisher_waypoint = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget, queue_size=1)
-publisher_waypoint = rospy.Publisher('mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=1)
+publisher_waypoint = rospy.Publisher('uuv00/mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=1)
 publisher_marker = rospy.Publisher('/infinity', MarkerArray, queue_size=1)
 current_pos_number = 0
 N = 100
@@ -84,7 +84,7 @@ current_parameters = 0
 R = 0.4
 wanted_z_position = 0.5
 distance_to_point = 0.8
-thrust = 0.3
+thrust = 0.4
 carrot = 1
 roll_desired = 0
 p = create_inf()
@@ -165,86 +165,37 @@ def pathplanning(current_waypoint, current_position_boat):
     return point_to_be_controlled_on
 
 
-def visualization():
-    r = 0.05
-    markerArray = MarkerArray()
-    for i in range(p.shape[1]):
-        if i == current_pos_number:
-            marker = Marker()
-            marker.header.frame_id = "global_tank"
-            marker.id = i
-            marker.type = marker.SPHERE
-            marker.action = marker.ADD
-            marker.scale.x = r * 2  # r*2 of distance to camera from tag_14
-            marker.scale.y = r * 2
-            marker.scale.z = r * 2
-            marker.color.r = 1
-            marker.color.a = 1  # transparency
-            marker.pose.orientation.w = 1.0
-            marker.pose.position.x = p[1, i]  # x
-            marker.pose.position.y = p[2, i]  # y
-            marker.pose.position.z = wanted_z_position  # z
-            markerArray.markers.append(marker)
-        else:
-            marker = Marker()
-            marker.header.frame_id = "global_tank"
-            marker.id = i
-            marker.type = marker.SPHERE
-            marker.action = marker.ADD
-            marker.scale.x = r  # r*2 of distance to camera from tag_14
-            marker.scale.y = r
-            marker.scale.z = r
-            marker.color.g = 1
-            marker.color.a = 1  # transparency
-            marker.pose.orientation.w = 1.0
-            marker.pose.position.x = p[1, i]  # x
-            marker.pose.position.y = p[2, i]  # y
-            marker.pose.position.z = wanted_z_position  # z
-            markerArray.markers.append(marker)
-    for i in range(len(current_path[0])):
-        marker = Marker()
-        marker.header.frame_id = "global_tank"
-        marker.id = i + p.shape[1]
-        marker.type = marker.SPHERE
-        marker.action = marker.ADD
-        marker.scale.x = r  # r*2 of distance to camera from tag_14
-        marker.scale.y = r
-        marker.scale.z = r
-        marker.color.g = 1
-        marker.color.a = 1  # transparency
-        marker.pose.orientation.w = 1.0
-        marker.pose.position.x = current_path[0, i]  # x
-        marker.pose.position.y = current_path[1, i]  # y
-        marker.pose.position.z = wanted_z_position  # z
-        markerArray.markers.append(marker)
-    marker = Marker()
-    marker.header.frame_id = "global_tank"
-    marker.id = 200
-    marker.type = marker.SPHERE
-    marker.action = marker.ADD
-    marker.scale.x = r  # r*2 of distance to camera from tag_14
-    marker.scale.y = r
-    marker.scale.z = r
-    marker.color.g = 1
-    marker.color.r = 1
-    marker.color.a = 1  # transparency
-    marker.pose.orientation.w = 1.0
-    marker.pose.position.x = current_path[0, 10 / 2]  # x
-    marker.pose.position.y = current_path[1, 10 / 2]  # y
-    marker.pose.position.z = wanted_z_position  # z
-    markerArray.markers.append(marker)
+def yaw_pitch_roll(quaternion):#Detinition w x y z
+        """Get the equivalent yaw-pitch-roll angles aka. intrinsic Tait-Bryan angles following the z-y'-x'' convention
 
-    publisher_marker.publish(markerArray)
+        Returns:
+            yaw:    rotation angle around the z-axis in radians, in the range `[-pi, pi]`
+            pitch:  rotation angle around the y'-axis in radians, in the range `[-pi/2, -pi/2]`
+            roll:   rotation angle around the x''-axis in radians, in the range `[-pi, pi]`
 
+        The resulting rotation_matrix would be R = R_x(roll) R_y(pitch) R_z(yaw)
+
+        Note:
+            This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+        """
+
+
+        yaw = np.arctan2(2*(quaternion[0]*quaternion[3] + quaternion[1]*quaternion[2]),
+            1 - 2*(quaternion[2]**2 + quaternion[3]**2))
+        pitch = np.arcsin(2*(quaternion[0]*quaternion[2] - quaternion[3]*quaternion[1]))
+        roll = np.arctan2(2*(quaternion[0]*quaternion[1] + quaternion[2]*quaternion[3]),
+            1 - 2*(quaternion[1]**2 + quaternion[2]**2))
+
+        return yaw, pitch, roll
 
 def callback(msg):
     """"""
     global current_pos_number, N, R, p, rate, thrust, carrot, just_changed, do_roll
     current_pos = p[1:4, current_pos_number]
-    # look if next waypoint should be loaded
+
     send_waypoint = AttitudeTarget()
 
-
+    # look if next waypoint should be loaded
     if np.sqrt(
             (msg.pose.position.x - current_pos[0]) ** 2 + (msg.pose.position.y - current_pos[1]) ** 2) < R:  # define R
         current_pos_number = current_pos_number + 1
@@ -257,20 +208,16 @@ def callback(msg):
     if current_pos_number == 19:
         just_changed = False
     current_waypoint = pathplanning(current_pos, np.asarray([msg.pose.position.x, msg.pose.position.y]))
-    rviz = True
-    if rviz:
-        visualization()
 
-    rotation_body_frame = Quaternion(w=msg.pose.orientation.w,
-                                     x=msg.pose.orientation.x,
-                                     y=msg.pose.orientation.y,
-                                     z=msg.pose.orientation.z)
 
-    yaw_current, pitch_current, roll_current = rotation_body_frame.yaw_pitch_roll
-    roll_current=-roll_current
-    #yaw_current = -yaw_current
-    #pitch_current = -pitch_current
-    #roll_current = -((roll_current + 360 / 180.0 * np.pi) % (np.pi * 2) - 180 / 180.0 * np.pi)
+
+    #rotation_body_frame = Quaternion(w=msg.pose.orientation.w,
+    #                                 x=msg.pose.orientation.x,
+    #                                 y=msg.pose.orientation.y,
+    #                                 z=msg.pose.orientation.z)
+
+    yaw_current, pitch_current, roll_current = yaw_pitch_roll([msg.pose.orientation.w,msg.pose.orientation.x,msg.pose.orientation.y,msg.pose.orientation.z])
+    # calculates with triangles the correct orientation for the vehicle
     yaw_des = np.arctan2((current_waypoint[1] - msg.pose.position.y), (current_waypoint[0] - msg.pose.position.x))
     pitch_des = -np.arctan((wanted_z_position - msg.pose.position.z) / distance_to_point)
     roll_des = 0.0 / 180.0 * np.pi
@@ -291,12 +238,13 @@ def callback(msg):
 
         current_pos_number = 98
         roll_des = roll_current + np.pi / 2
+        print("roll_des",roll_des)
         if roll_des > np.pi:
             roll_des = roll_des - np.pi * 2
         if roll_des > -np.pi / 3 and roll_des < 0:
             roll_des = 0
             do_roll = False
-        send_waypoint.thrust = thrust*0.1
+        send_waypoint.thrust = thrust*0.5
     # yaw_des = 0.0 / 180.0 * np.pi
     # pitch_des = 0.0 / 180.0 * np.pi
 
@@ -312,11 +260,13 @@ def callback(msg):
     send_waypoint.orientation.w = qz_90n.w
     # print(qz_90n.x,qz_90n.y,qz_90n.z,qz_90n.w)
     # 0.2 works
-    send_waypoint.thrust = thrust * np.cos(yaw_current - yaw_des) * np.cos(roll_current - roll_des) * np.cos(
-        pitch_current - pitch_des)
-    if abs(yaw_current - yaw_des) > np.pi / 2 or abs(roll_current - roll_des) > np.pi / 2 or abs(
-            pitch_current - pitch_des) > np.pi / 2:
-        send_waypoint.thrust = 0.0
+    if not do_roll:
+        send_waypoint.thrust = thrust * np.cos(yaw_current - yaw_des) * np.cos(roll_current - roll_des) * np.cos(
+            pitch_current - pitch_des)
+        if abs(yaw_current - yaw_des) > np.pi / 2 or abs(roll_current - roll_des) > np.pi / 2 or abs(
+                pitch_current - pitch_des) > np.pi / 2:
+            send_waypoint.thrust = 0.0
+
     publisher_waypoint.publish(send_waypoint)
     rate.sleep()
 
@@ -328,19 +278,19 @@ def change_parameter():
         R = 0.4
         wanted_z_position = 0.5
         distance_to_point = 0.8
-        thrust = 0.3
+        thrust = 0.4
         do_roll = True
     if current_parameters == 3 or current_parameters == 3 or current_parameters == 3:
         R = 0.4
         wanted_z_position = 0.7
         distance_to_point = 0.8
-        thrust = 0.3
+        thrust = 0.4
         do_roll = False
     if current_parameters == 4 or current_parameters == 4 or current_parameters == 4:
         R = 0.4
         wanted_z_position = 1
         distance_to_point = 0.8
-        thrust = 0.3
+        thrust = 0.4
         do_roll = False
     if current_parameters == 5:  # WRONG DO 4
         R = 0.4
@@ -356,7 +306,7 @@ def main():
     rospy.init_node('waypoint_send')
     global rate, R, wanted_z_position, distance_to_point, thrust, carrot, yaw
     rate = rospy.Rate(30)
-    rospy.Subscriber("/mavros/local_position/pose_NED", PoseStamped, callback, queue_size=1)
+    rospy.Subscriber("/uuv00/pose_px4", PoseStamped, callback, queue_size=1)
     rospy.spin()
 
 

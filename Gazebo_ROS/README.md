@@ -3,9 +3,9 @@
 Requirement:
 * The [PX4 Firmware](https://github.com/PX4/Firmware) works with ROS-Melodic and Gazebo (the default IRIS version)
 * Mavros is installed
+* Additional dependencie: sudo apt-get install xmlstarlet
 
 
-Wir nehmen hier folgendes an: Die Firmware von PX4  wurde installiert und Funktioniert mit ROS (Guides gibt es dort dafuer)+Mavros. Die IRIS Standard Welt reicht.
 Cloning of Firmware from HippoCampusRobotics:
 ```
 cd ~
@@ -27,6 +27,20 @@ roslaunch px4 posix_sitl.launch
 ```
 Now IRIS should be visible and with `rostopic list` a list of different Topics.
 
+In order to run the following packages successfully the PX4 Software has to be found in the ROS-Path
+This can be done by adding the Path to the `.bashrc` file.
+```
+source ~/src/Firmware/Tools/setup_gazebo.bash ~/src/Firmware ~/src/Firmware/build/px4_sitl_default 
+export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:~/src/Firmware
+export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:~/src/Firmware/Tools/sitl_gazebo
+```
+When using `source ~/.bashrc` or opening a new Terminal new text could appear. This can be bypassed to add `> /dev/null 2>&1` at the end of the line:
+```
+source ~/src/Firmware/Tools/setup_gazebo.bash ~/src/Firmware ~/src/Firmware/build/px4_sitl_default > /dev/null 2>&1
+```
+But this will also filter out every error that is happening from this line.
+
+<!--
 For the state estimation with the April-tags first the world has to be changed and the vehicle correct vehicle has to be spawned.
 In `hippocampus_firmware/launch/posix_sitl.launch` the following lines have to be replaced:
 ```
@@ -51,6 +65,8 @@ In `hippocampus_firmware/Tools/sitl_gazebo/worlds/uuv_hippocampus.world` the lin
 
 have to be added after the global light source.
 with `roslaunch px4 posix_sitl.launch` the April tag World should be visible. 
+-->
+
 The localization and State Estimation is possible with an EKF.
 This can be installed in your catkin_ws with:
 
@@ -67,26 +83,28 @@ source ~/.bashrc
 
 With:
 ```
-roslaunch mu_auv_localization gazebo_localization.launch
+roslaunch hippocampus_common example_localization_gazebo.launch 
 ```
 The State estimation can be started. 
 
 The Estimation starts also:
 * Mavros
 * Image Rectification
-* ENU to NED (Mavros to ROS Conversion)
-* Barometer for Gazebo
+* Mavros to ROS Conversion of the Coordinate system
 * Apriltag Algorithm
 * EKF Node (The actual State Estimation)
 
-With the script `driving_infinity.py`, on this side the uuv can drive an infinity.
+With the script `driving_infinity.py`, on this side the uuv can drive an infinity like shape in the Tank.
 
-With Qgroundcontrol(QGC) the UUV_INPUT_MODE has to be changed on 3 and EKF2_AID_MASK to 24.
+Additionally the software [Qgroundcontrol](http://qgroundcontrol.com/) (QGC) is necessary.
+With QGC the UUV_INPUT_MODE has to be changed on 3 and EKF2_AID_MASK to 24.
 This can be done in the Parameters tab of QGC.
 Offboard mode and arming is required.
 Force Arming can be done with the following command:
 ```
 rosservice call /mavros/cmd/command "{broadcast: false, command: 400,confirmation: 0, param1: 1, param2: 21196, param3: 0.0, param4: 0.0,param5: 0.0, param6: 0.0, param7: 0.0}"
 ```
+
+If the vehicle is vibrating a lot try to tune the parameters `UUV_ROLL_D, UUV_PITCH_D, UUV_YAW_D` in QGC 
 
 
