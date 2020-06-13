@@ -74,6 +74,7 @@ This can be installed in your catkin_ws with:
 cd ~/catkin_ws/src
 git clone https://github.com/HippoCampusRobotics/mu_auv_localization.git
 git clone https://github.com/HippoCampusRobotics/hippocampus_common.git
+git clone https://github.com/HippoCampusRobotics/hippocampus_sim.git
 cd .. 
 rosdep install --from-paths src --ignore-src --rosdistro melodic -y
 source ~/.bashrc
